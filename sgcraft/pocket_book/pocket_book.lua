@@ -253,7 +253,7 @@ if config.sync_enabled then
         sync_tag = sync_tag .. ":" .. tostring(config.master_id)
     end
 end
-win.write("[Pocket Book-Page " .. page .. sync_tag .. " ]")
+win.write("Pocket Book Page " .. page .. sync_tag .. "")
     win.setCursorPos(1, 2)
     win.write(string.rep("=", w))
 
@@ -511,19 +511,20 @@ while true do
     end
 
 elseif view_mode == "help" then
-    if y >= 3 and y <= 9 then
-        local cmds = { "new", "edit", "remove", "dial", "dialgate", "dialback", "stop", "chat", "list", "quit" }
+    local cmds = { "new", "edit", "remove", "dial", "dialgate", "dialback", "stop", "chat", "sync", "master", "pull", "list", "quit" }
+
+    if y >= 3 and y <= 2 + #cmds then
         local index = y - 2
         if cmds[index] then
             local cmd = cmds[index]
-if cmd == "chat" and not chat_enabled then
-    selected_command = "chat"
-    view_mode = "desc"
-else
-    selected_command = cmd
-    view_mode = "desc"
-end
-draw()
+            if cmd == "chat" and not chat_enabled then
+                selected_command = "chat"
+                view_mode = "desc"
+            else
+                selected_command = cmd
+                view_mode = "desc"
+            end
+            draw()
         end
     elseif y == h then
         view_mode = "entries"
