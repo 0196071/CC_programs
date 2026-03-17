@@ -1,10 +1,37 @@
 --Pocket_book revision 43
--- Minimal Stargate Address Book using native window() API (Restored to legacy style with colored entry highlight)
+-- Minimal Stargate Pocket Book using native window() API (Restored to legacy style with colored entry highlight)
 local completion = require("cc.completion")
 
 local address_file = "saved_address.txt"
+local config_file = "saved_config.txt"
 local address_book = {}
-local config = { nearest_range = 200 }
+local config = {    nearest_range = 200,
+    sync_enabled = false,
+    master_id = nil
+}
+
+
+local function loadConfig()
+    if fs.exists(config_file) then
+        local f = io.open(config_file, "r")
+        config = textutils.unserialise(f:read("*a")) or config
+        f:close()
+    end
+
+    config.nearest_range = config.nearest_range or 200
+    if config.sync_enabled == nil then
+        config.sync_enabled = false
+    end
+    config.master_id = tonumber(config.master_id) or nil
+end
+
+loadConfig()
+
+local function saveConfig()
+    local f = io.open(config_file, "w")
+    f:write(textutils.serialise(config))
+    f:close()
+end
 local w, h = term.getSize()
 local page = 1
 local totalPages = 1
@@ -20,11 +47,11 @@ local scroll_timer = nil
 local scroll_interval = 0.2
 local prompt_active = false
 local command_descriptions = {
-    new = "Add a new entry to the address book. You'll be prompted for a name and a numeric address (e.g. 1-2-3) or any combination of , - and space.",
+    new = "Add a new entry to the Pocket Book. You'll be prompted for a name and a numeric address (e.g. 1-2-3) or any combination of , - and space.",
     
     edit = "Modify the name or address of an existing entry. Usage: edit <entry number>. Leave fields blank to keep them unchanged.",
     
-    remove = "Delete an entry from the address book. Usage: remove <entry number>. You'll be asked to confirm before deletion.",
+    remove = "Delete an entry from the Pocket Book. Usage: remove <entry number>. You'll be asked to confirm before deletion.",
     
     dial = "Manually enter an address (e.g. 4-5-6) and send a dial request to the targeted Stargate.",
     
@@ -34,13 +61,19 @@ local command_descriptions = {
 	
 	stop = "Select a nearby gate by label and send a disconnect signal. Usage: stop",
     
-    goto = "Jump directly to a specific page in the entry list. Usage: goto <page number>.",
-    
-    quit = "Exit the address book program and return to the terminal.",
+    quit = "Exit the Pocket Book program and return to the terminal.",
 	
 	dialback = "Send a dialback command to the nearest gate. If EasyDial is present, it will redial the last address used. Future versions may support zzzv3 fallback.",
 	
-	chat = "Send the address of an entry via ChatBox. Usage: chat <entry> [player]"
+	sync = "Toggle address sync on or off. Usage: sync",
+	
+    master = "Set the master computer ID used for sync. Usage: master <id>",
+	
+    pull = "Immediately request the latest address book from the master. Usage: pull",
+	
+	chat = "Send the address of an entry via ChatBox. Usage: chat <entry> [player]",
+	
+	goto = "Jump directly to a specific page in the entry list. Usage: goto <page number>."
 }
 
 
@@ -59,6 +92,76 @@ local function saveAddresses()
     local f = io.open(address_file, "w")
     f:write(textutils.serialise(address_book))
     f:close()
+end
+
+if config.sync_enabled and config.master_id and modem then
+    rednet.send(config.master_id, "", "jjs_sg_sync_request")
+    local id, msg = rednet.receive("jjs_sg_sync_data", 0.8)
+    if id == config.master_id and type(msg) == "table" then
+        address_book = msg
+        saveAddresses()
+    end
+end
+
+local function syncFromMaster(show_status)
+    if not modem then
+        if show_status then
+            win.setCursorPos(1, h - 1)
+            win.clearLine()
+            win.write("Wireless modem not found.")
+        end
+        return false
+    end
+
+    if not config.sync_enabled then
+        if show_status then
+            win.setCursorPos(1, h - 1)
+            win.clearLine()
+            win.write("Sync is disabled.")
+        end
+        return false
+    end
+
+    if not config.master_id then
+        if show_status then
+            win.setCursorPos(1, h - 1)
+            win.clearLine()
+            win.write("No master ID set.")
+        end
+        return false
+    end
+
+    rednet.send(config.master_id, "", "jjs_sg_sync_request")
+
+    local attempts = 0
+    local id, msg, protocol
+    repeat
+        id, msg, protocol = rednet.receive("jjs_sg_sync_data", 0.2)
+        attempts = attempts + 1
+    until id == config.master_id or attempts >= 8
+
+    if id == config.master_id and type(msg) == "table" then
+        address_book = msg
+        saveAddresses()
+        totalPages = math.max(1, math.ceil(#address_book / per_page))
+        if page > totalPages then
+            page = totalPages
+        end
+
+        if show_status then
+            win.setCursorPos(1, h - 1)
+            win.clearLine()
+            win.write("Synced " .. tostring(#address_book) .. " entries.")
+        end
+        return true
+    end
+
+    if show_status then
+        win.setCursorPos(1, h - 1)
+        win.clearLine()
+        win.write("Sync failed.")
+    end
+    return false
 end
 
 
@@ -143,7 +246,14 @@ local function draw()
     win.clear()
 
     win.setCursorPos(1, 1)
-    win.write("[ Address Book - Page " .. page .. " ]")
+    local sync_tag = ""
+if config.sync_enabled then
+    sync_tag = "|ID["..os.getComputerID().."]"
+    if config.master_id then
+        sync_tag = sync_tag .. ":" .. tostring(config.master_id)
+    end
+end
+win.write("[Pocket Book-Page " .. page .. sync_tag .. " ]")
     win.setCursorPos(1, 2)
     win.write(string.rep("=", w))
 
@@ -183,7 +293,7 @@ end
         win.setCursorPos(1, 2)
         win.write(string.rep("=", w))
 
-        local cmds = { "new", "edit", "remove", "dial", "dialgate", "dialback", "stop", "chat", "list", "quit" }
+        local cmds = { "new", "edit", "remove", "dial", "dialgate", "dialback", "stop", "chat", "sync", "master", "pull", "list", "quit" }
         for i, cmd in ipairs(cmds) do
     win.setCursorPos(1, i + 2)
     if cmd == "chat" and not peripheral.find("chatBox") then
@@ -853,6 +963,41 @@ elseif cmd == "dialback" then
     sleep(1)
     draw()
     scroll_timer = os.startTimer(scroll_interval)
+	
+	elseif cmd == "sync" then
+    config.sync_enabled = not config.sync_enabled
+    saveConfig()
+
+    win.setCursorPos(1, h - 1)
+    win.clearLine()
+    win.write("Sync: " .. (config.sync_enabled and "ON" or "OFF"))
+
+    if config.sync_enabled and config.master_id then
+        syncFromMaster(false)
+    end
+
+    sleep(1)
+    draw()
+
+elseif cmd == "master" and tonumber(parts[2]) then
+    config.master_id = tonumber(parts[2])
+    saveConfig()
+
+    win.setCursorPos(1, h - 1)
+    win.clearLine()
+    win.write("Master ID set to " .. tostring(config.master_id))
+
+    if config.sync_enabled then
+        syncFromMaster(false)
+    end
+
+    sleep(1)
+    draw()
+
+elseif cmd == "pull" then
+    syncFromMaster(true)
+    sleep(1)
+    draw()
 
 elseif cmd == "list" then
     view_mode = "help"
@@ -885,12 +1030,53 @@ end
 
 
 end
-local ok, err = pcall(main)
+
+local function lookupThread()
+    while true do
+        local id, msg, protocol = rednet.receive()
+        local return_data
+        if protocol == "jjs_sg_lookup_address" then
+            local to_search = table.concat(msg, "-")
+            for k,v in pairs(address_book) do
+                if table.concat(v.address, "-") == to_search then
+                    return_data = v
+                    break
+                end
+            end
+        elseif protocol == "jjs_sg_lookup_name" then
+            local to_search = msg
+            for k,v in pairs(address_book) do
+                if v.name == to_search then
+                    return_data = v
+                    break
+                end
+            end
+        end
+
+        if protocol == "jjs_sg_lookup_address" or protocol == "jjs_sg_lookup_name" then
+            if return_data then
+                rednet.send(id, return_data, "jjs_sg_lookup_return")
+            else
+                rednet.send(id, return_data, "jjs_sg_lookup_fail")
+            end
+        end
+    end
+end
+
+local function mainThread()
+    local ok, err = pcall(main)
+    if not ok then
+        error(err)
+    end
+end
+
+parallel.waitForAny(mainThread, lookupThread)
 -- Clear screen on exit
 term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
 term.clear()
 term.setCursorPos(1, 1)
+
 
 if not ok then
     print("Error: " .. tostring(err))
