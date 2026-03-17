@@ -1,4 +1,4 @@
---Pocket_book revision 43
+--Pocket_book revision 46
 -- Minimal Stargate Pocket Book using native window() API (Restored to legacy style with colored entry highlight)
 local completion = require("cc.completion")
 
