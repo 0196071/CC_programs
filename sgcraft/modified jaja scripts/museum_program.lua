@@ -321,7 +321,7 @@ local function mainThread()
         local signal
         if event[1] == "redstone_signal" then
             signal = event[2]
-        elseif event[1] == "monitor_touch" and event[2] == "top" then
+        elseif event[1] == "monitor_touch" then
             signal = true
         end
         if signal == true then
