@@ -1,4 +1,5 @@
-local target_stargate = {28,22,33,7,23,25,31,32}
+
+local target_stargate = {2,3,4,5,6,7,8,9}
 local monitor = peripheral.find("monitor")
 
 local function getCenter(text, width)
