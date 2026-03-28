@@ -19,7 +19,7 @@ end
 displayOnMonitorTimed("Program Starting", colors.green, 1)
 
 local program_path = shell.getRunningProgram()
-local program_link = "https://raw.githubusercontent.com/JajaSteele/CC-Random/main/SGJourney/museum_program.lua"
+local program_link = "https://github.com/0196071/CC_programs/raw/refs/heads/main/sgcraft/modified%20jaja%20scripts/museum_program.lua"
 
 local function split(s, delimiter)
     local result = {};
