@@ -1,4 +1,4 @@
---
+
 local target_stargate = {2,3,4,5,6,7,8,9}
 local monitor = peripheral.find("monitor")
 
@@ -107,6 +107,8 @@ else
 end
 
 local interface = peripheral.find("basic_interface") or peripheral.find("crystal_interface") or peripheral.find("advanced_crystal_interface")
+interface.setNetwork(9)
+interface.restrictNetwork(true)
 
 local stop_dial = false
 
