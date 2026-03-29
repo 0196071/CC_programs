@@ -1,4 +1,4 @@
-
+local other_target_stargate = {17,2,31,4,23,10,18,34}
 local target_stargate = {2,3,4,5,6,7,8,9}
 local monitor = peripheral.find("monitor")
 
@@ -404,7 +404,7 @@ local function mainThread()
                 print("Dialing Address")
                 stop_dial = false
                 parallel.waitForAny((function() 
-                    engageAddress(target_stargate)
+                   if interface.getStargateType() ~= "sgjourney:universe_stargate" or interface.getStargateType() ~= "sgjourney:classic_stargate" then engageAddress(target_stargate) else engageAddress(other_target_stargate) end
                 end), cancelThread)
             end
         end
