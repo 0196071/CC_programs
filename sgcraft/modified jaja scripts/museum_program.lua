@@ -122,7 +122,7 @@ local function engageAddress(address)
             sleep(0.25)
         end
         interface.engageSymbol(0)
-    elseif interface.engageSymbol and interface.rotateClockwise then
+    elseif interface.engageSymbol and interface.rotateClockwise and interface.getStargateType() ~= "sgjourney:universe_stargate" then
         if (0-interface.getCurrentSymbol()) % 39 < 19 then
             interface.rotateAntiClockwise(0)
         else
@@ -172,18 +172,13 @@ local function engageAddress(address)
             local symbol = interface.getCurrentSymbol()
             sleep(0.125)
         until symbol == 0
-		if interface.getStargateType() ~= "sgjourney:universe_stargate" then
         sleep(0.25)
         interface.openChevron()
         sleep(0.25)
         interface.encodeChevron()
         sleep(0.25)
         interface.closeChevron()
-		else
-		sleep(0.25)
-        interface.encodeChevron()
-		end
-    elseif interface.rotateClockwise then
+    elseif interface.rotateClockwise and interface.getStargateType() ~= "sgjourney:universe_stargate" then
         for k,number in ipairs(address) do
             if stop_dial then
                 break
@@ -230,6 +225,53 @@ local function engageAddress(address)
         interface.encodeChevron()
         sleep(0.25)
         interface.closeChevron()
+	elseif interface.getStargateType() == "sgjourney:universe_stargate" or interface.getStargateType() == "sgjourney:classic_stargate" then
+        for k,number in ipairs(address) do
+            if stop_dial then
+                break
+            end
+				if (number-interface.getCurrentSymbol()) % 39 < 19 then
+
+			interface.rotateAntiClockwise(number)
+
+		else
+
+			interface.rotateClockwise(number)
+
+		end
+
+		while (not interface.isCurrentSymbol(number))
+
+		do
+
+			if beginDialing then
+
+				return
+
+			end
+
+			interface.getRecentFeedback()
+
+			sleep(0)
+
+		end
+
+	--	interface.endRotation()
+
+--		sleep(.7)
+
+--		interface.openChevron()
+
+		sleep(0.4)
+
+		interface.encodeChevron()
+
+--		sleep(0.5)
+
+--		interface.closeChevron()
+
+	    sleep(.5)
+		end
     else
         print("Couldn't dial number!")
     end
