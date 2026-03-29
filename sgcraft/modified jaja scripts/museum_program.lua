@@ -272,6 +272,17 @@ local function engageAddress(address)
 
 	    sleep(.5)
 		end
+		if (0-interface.getCurrentSymbol()) % 39 < 19 then
+            interface.rotateAntiClockwise(0)
+        else
+            interface.rotateClockwise(0)
+        end
+        
+        repeat
+            sleep(0)
+        until interface.getCurrentSymbol() == 0
+		        sleep(0.5)
+        interface.encodeChevron()
     else
         print("Couldn't dial number!")
     end
