@@ -404,7 +404,7 @@ local function mainThread()
                 print("Dialing Address")
                 stop_dial = false
                 parallel.waitForAny((function() 
-                   if interface.getStargateType() ~= "sgjourney:universe_stargate" or interface.getStargateType() ~= "sgjourney:classic_stargate" then engageAddress(target_stargate) else engageAddress(other_target_stargate) end
+                   if interface.getStargateType() ~= "sgjourney:universe_stargate" and interface.getStargateType() ~= "sgjourney:classic_stargate" then engageAddress(target_stargate) else engageAddress(other_target_stargate) end
                 end), cancelThread)
             end
         end
