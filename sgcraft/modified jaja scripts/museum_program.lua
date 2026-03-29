@@ -354,7 +354,7 @@ local function mainThread()
 end
 
 if interface then
-    if interface.rotateClockwise then
+    if interface.rotateClockwise and interface.getStargateType() == "sgjourney:milky_way_stargate" then
         if interface.isChevronOpen(0) then
             interface.closeChevron()
         end
