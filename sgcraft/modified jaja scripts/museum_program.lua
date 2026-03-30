@@ -172,12 +172,17 @@ local function engageAddress(address)
             local symbol = interface.getCurrentSymbol()
             sleep(0.125)
         until symbol == 0
+		if not interface.getStargateType == "sgjourney:classic_stargate" then
         sleep(0.25)
         interface.openChevron()
         sleep(0.25)
         interface.encodeChevron()
         sleep(0.25)
         interface.closeChevron()
+		else
+		sleep(0.25)
+		interface.encodeChevron()
+		end
     elseif interface.rotateClockwise and interface.getStargateType() ~= "sgjourney:universe_stargate" then
         for k,number in ipairs(address) do
             if stop_dial then
