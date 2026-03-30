@@ -122,7 +122,7 @@ local function engageAddress(address)
             sleep(0.25)
         end
         interface.engageSymbol(0)
-    elseif interface.engageSymbol and (interface.getStargateType() ~= "sgjourney:universe_stargate" or interface.getStargateType() ~= "sgjourney:classic_stargate") then
+    elseif (interface.engageSymbol and interface.getStargateType() ~= "sgjourney:universe_stargate") or (interface.getStargateType() ~= "sgjourney:classic_stargate" and interface.engageSymbol) then
         if (0-interface.getCurrentSymbol()) % 39 < 19 then
             interface.rotateAntiClockwise(0)
         else
@@ -180,7 +180,7 @@ local function engageAddress(address)
         interface.closeChevron()
 		sleep(0.25)
 		interface.encodeChevron()
-    elseif interface.rotateClockwise and (interface.getStargateType() ~= "sgjourney:universe_stargate" or interface.getStargateType() ~= "sgjourney:classic_stargate")  then
+    elseif (interface.rotateClockwise and interface.getStargateType() ~= "sgjourney:universe_stargate") or (interface.rotateClockwise and interface.getStargateType() ~= "sgjourney:classic_stargate")  then
         for k,number in ipairs(address) do
             if stop_dial then
                 break
