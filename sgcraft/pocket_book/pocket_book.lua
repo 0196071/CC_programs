@@ -1,4 +1,4 @@
---Pocket_book revision 46
+--Pocket_book revision 47
 -- Minimal Stargate Pocket Book using native window() API (Restored to legacy style with colored entry highlight)
 local completion = require("cc.completion")
 
@@ -165,7 +165,7 @@ local function syncFromMaster(show_status)
 end
 
 
-local per_page = h - 6
+local per_page = 1
 
 totalPages = math.max(1, math.ceil(#address_book / per_page))
 
@@ -202,9 +202,22 @@ local function wrapText(text, width)
     return lines
 end
 
-term.redirect(term.native()) -- reset to default first
+local parentTerm = term.current() -- reset to default first
 local win = window.create(term.current(), 1, 1, w, h, false)
 term.redirect(win) -- now redirect input/output to the window
+
+local function refreshLayout()
+    local newW, newH = parentTerm.getSize()
+    w, h = newW, newH
+    per_page = math.max(1, h - 6)
+
+    win.reposition(1, 1, w, h)
+
+    totalPages = math.max(1, math.ceil(#address_book / per_page))
+    if page > totalPages then
+        page = totalPages
+    end
+end
 
 local function renderScrollingMessage()
     win.setCursorPos(1, h - 3)
@@ -448,6 +461,7 @@ end
 -- Main event loop
 local function main()
 
+refreshLayout()
 draw()
 scroll_timer = os.startTimer(scroll_interval)
 local function promptInput(prompt)
@@ -458,11 +472,12 @@ local function promptInput(prompt)
     win.setCursorPos(1, h - 2)
     win.clearLine()
 
-    term.redirect(term.native())
+    term.redirect(parentTerm)
     write("> ")
     local input = read()
 	prompt_active = false
     term.redirect(win)
+    refreshLayout()
 scroll_timer = os.startTimer(scroll_interval)
 -- Flush scroll events that may have occurred during read()
 while true do
@@ -577,11 +592,12 @@ win.setCursorPos(1, h - 2)
 win.clearLine()
 
 prompt_active = true
-term.redirect(term.native())
+term.redirect(parentTerm)
 write("> ")
 local rawaddr = read()
 prompt_active = false
 term.redirect(win)
+refreshLayout()
 scroll_timer = os.startTimer(scroll_interval)
 -- Flush scroll events that may have occurred during read()
 while true do
@@ -617,7 +633,7 @@ win.clearLine()
         win.setCursorPos(1, h - 2)
         win.clearLine()
 prompt_active = true
-term.redirect(term.native())
+term.redirect(parentTerm)
 write("> ")
 local name = read(nil, nil, nil, entry.name)
 
@@ -626,6 +642,7 @@ local name = read(nil, nil, nil, entry.name)
 
 prompt_active = false
 term.redirect(win)
+refreshLayout()
 scroll_timer = os.startTimer(scroll_interval)
 -- Flush scroll events that may have occurred during read()
 while true do
@@ -646,7 +663,7 @@ win.redraw() -- force re-focus
         win.setCursorPos(1, h - 2)
         win.clearLine()
 prompt_active = true
-term.redirect(term.native())
+term.redirect(parentTerm)
 write("> ")
 local rawaddr = read(nil, nil, nil, table.concat(entry.address, "-"))
 
@@ -654,6 +671,7 @@ local rawaddr = read(nil, nil, nil, table.concat(entry.address, "-"))
 
 prompt_active = false
 term.redirect(win)
+refreshLayout()
 scroll_timer = os.startTimer(scroll_interval)
 -- Flush scroll events that may have occurred during read()
 while true do
@@ -695,11 +713,12 @@ elseif cmd == "remove" and tonumber(parts[2]) then
         win.setCursorPos(1, h - 2)
         win.clearLine()
 prompt_active = true
-term.redirect(term.native())
+term.redirect(parentTerm)
 write("> ")
 local confirm = read():lower()
 prompt_active = false
 term.redirect(win)
+refreshLayout()
 scroll_timer = os.startTimer(scroll_interval)
 -- Flush scroll events that may have occurred during read()
 while true do
@@ -854,6 +873,7 @@ end)
 
         prompt_active = false
         term.redirect(win)
+        refreshLayout()
         scroll_timer = os.startTimer(scroll_interval)
         -- Flush scroll events after dialing
         while true do
@@ -895,7 +915,7 @@ elseif cmd == "stop" then
     win.setCursorPos(1, h - 2)
     win.clearLine()
 
-    term.redirect(term.native())
+    term.redirect(parentTerm)
     write("> ")
     prompt_active = true
     local selected = read(nil, nil, function(text)
@@ -903,6 +923,7 @@ elseif cmd == "stop" then
     end)
     prompt_active = false
     term.redirect(win)
+    refreshLayout()
     scroll_timer = os.startTimer(scroll_interval)
     while true do
         local e = { os.pullEventRaw() }
@@ -1015,16 +1036,18 @@ elseif cmd == "list" then
             end
             draw()
         end
+    elseif e[1] == "term_resize" then
+        refreshLayout()
+        draw()
     elseif e[1] == "timer" and highlight_timer and e[2] == highlight_timer then
         highlight_y = nil
         highlight_timer = nil
         draw()
-	elseif e[1] == "timer" and e[2] == scroll_timer then
+elseif e[1] == "timer" and e[2] == scroll_timer then
     if view_mode == "entries" and not prompt_active then
         drawScrollingMessage()
     end
     scroll_timer = os.startTimer(scroll_interval)
-
     end
 
 end
