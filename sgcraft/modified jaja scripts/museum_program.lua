@@ -172,7 +172,7 @@ local function engageAddress(address)
             local symbol = interface.getCurrentSymbol()
             sleep(0.125)
         until symbol == 0
-		if interface.getStargateType == "sgjourney:milky_way_stargate" then
+		if interface.getStargateType() == "sgjourney:milky_way_stargate" then
         sleep(0.25)
         interface.openChevron()
         sleep(0.25)
