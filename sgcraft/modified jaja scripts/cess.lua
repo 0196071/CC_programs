@@ -157,11 +157,13 @@ end
 
 local function logPlayers(data)
     local discord_text = ""
+    local timestamp = getDate()
+
     for k,v in pairs(data) do
         if v.action == "entry" then
-            discord_text = discord_text..":arrow_lower_right: **"..(v.name or "Unknown").."** > "..v.action.."\n"
+            discord_text = discord_text.."["..timestamp.."] :arrow_lower_right: **"..(v.name or "Unknown").."** > "..v.action.."\n"
         elseif v.action == "exit" then
-            discord_text = discord_text..":no_entry: **"..(v.name or "Unknown").."** > "..v.action.."\n"
+            discord_text = discord_text.."["..timestamp.."] :no_entry: **"..(v.name or "Unknown").."** > "..v.action.."\n"
         end
     end
 
