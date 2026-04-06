@@ -1,4 +1,4 @@
-local script_version = "1.4"
+local script_version = "1.5"
 
 -- AUTO UPDATE STUFF
 local curr_script = shell.getRunningProgram()
@@ -15,7 +15,7 @@ local local_version = getVersionNumbers(local_version_line)
 
 print("Local Version: "..string.format("%d.%d", table.unpack(local_version)))
 
-local update_source = ""
+local update_source = "https://github.com/0196071/CC_programs/raw/refs/heads/main/sgcraft/modified%20jaja%20scripts/cess.lua"
 local update_request = http.get(update_source)
 if update_request then
     local script_version_line = update_request.readLine()
