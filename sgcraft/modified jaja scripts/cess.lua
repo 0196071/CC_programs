@@ -1,4 +1,4 @@
-local script_version = "1.5"
+local script_version = "1.6"
 
 -- AUTO UPDATE STUFF
 local curr_script = shell.getRunningProgram()
@@ -100,6 +100,31 @@ if args[1] == "config" or not fs.exists("/config_cess.txt") then
         config.isChatbox = false
     end
 
+    print("Log entry coordinates? (y/n)")
+    config.logEntryCoords = read():lower()
+    if config.logEntryCoords == "y" then
+        config.logEntryCoords = true
+    else
+        config.logEntryCoords = false
+    end
+
+    local configfile = io.open("/config_cess.txt","w")
+    configfile:write(textutils.serialise(config))
+    configfile:close()
+end
+
+local configfile = io.open("/config_cess.txt","r")
+config = textutils.unserialise(configfile:read("*a"))
+configfile:close()
+
+local config_updated = false
+
+if config.logEntryCoords == nil then
+    config.logEntryCoords = false
+    config_updated = true
+end
+
+if config_updated then
     local configfile = io.open("/config_cess.txt","w")
     configfile:write(textutils.serialise(config))
     configfile:close()
@@ -160,10 +185,18 @@ local function logPlayers(data)
     local timestamp = getDate()
 
     for k,v in pairs(data) do
+        local coord_text = ""
+        if v.pos then
+            coord_text = " at ("..v.pos.x..", "..v.pos.y..", "..v.pos.z..")"
+            if v.pos.dimension then
+                coord_text = coord_text.." in "..v.pos.dimension
+            end
+        end
+
         if v.action == "entry" then
-            discord_text = discord_text.."["..timestamp.."] :arrow_lower_right: **"..(v.name or "Unknown").."** > "..v.action.."\n"
+            discord_text = discord_text.."["..timestamp.."] :arrow_lower_right: **"..(v.name or "Unknown").."** > "..v.action..coord_text.."\n"
         elseif v.action == "exit" then
-            discord_text = discord_text.."["..timestamp.."] :no_entry: **"..(v.name or "Unknown").."** > "..v.action.."\n"
+            discord_text = discord_text.."["..timestamp.."] :no_entry: **"..(v.name or "Unknown").."** > "..v.action..coord_text.."\n"
         end
     end
 
@@ -177,25 +210,43 @@ local function logPlayers(data)
         chat_text = chat_text.."\n"
         spacing = "\n  "
     end
+
     for k,v in pairs(data) do
+        local coord_text = ""
+        if v.pos then
+            coord_text = " \xA7eat\xA7f ("..v.pos.x..", "..v.pos.y..", "..v.pos.z..")"
+            if v.pos.dimension then
+                coord_text = coord_text.." \xA7ein\xA7f "..v.pos.dimension
+            end
+        end
+
         if v.action == "entry" then
-            chat_text = chat_text..spacing.."\xA7b"..(v.name or "Unknown").." \xA7e> \xA7a"..v.action
+            chat_text = chat_text..spacing.."["..timestamp.."] \xA7b"..(v.name or "Unknown").." \xA7e> \xA7a"..v.action..coord_text
         elseif v.action == "exit" then
-            chat_text = chat_text..spacing.."\xA7b"..(v.name or "Unknown").." \xA7e> \xA7c"..v.action
+            chat_text = chat_text..spacing.."["..timestamp.."] \xA7b"..(v.name or "Unknown").." \xA7e> \xA7c"..v.action..coord_text
         end
     end
 
     if use_chatbox then
         chat_queue[#chat_queue+1] = {text=chat_text, timer=360}
     end
+
     print('['..getDate().."] > Security Notification:")
     for k,v in pairs(data) do
+        local coord_text = ""
+        if v.pos then
+            coord_text = " at ("..v.pos.x..", "..v.pos.y..", "..v.pos.z..")"
+            if v.pos.dimension then
+                coord_text = coord_text.." in "..v.pos.dimension
+            end
+        end
+
         if v.action == "entry" then
             term.setTextColor(colors.lime)
         elseif v.action == "exit" then
             term.setTextColor(colors.red)
         end
-        print("  "..(v.name or "Unknown").." > "..v.action)
+        print("  "..(v.name or "Unknown").." > "..v.action..coord_text)
         term.setTextColor(colors.white)
     end
 end
@@ -266,11 +317,25 @@ local function playerRadar()
                 security_data[#security_data+1] = {name=v, action="exit"}
             end
         end
-        for k,v in ipairs(player_entries) do
-            if v ~= config.owner then
-                security_data[#security_data+1] = {name=v, action="entry"}
-            end
-        end
+			for k,v in ipairs(player_entries) do
+				if v ~= config.owner then
+					local entry_data = {name=v, action="entry"}
+
+					if config.logEntryCoords then
+						local pos = radar.getPlayerPos(v)
+						if pos then
+							entry_data.pos = {
+								x = math.floor(pos.x),
+								y = math.floor(pos.y),
+								z = math.floor(pos.z),
+								dimension = pos.dimension
+							}
+						end
+					end
+
+					security_data[#security_data+1] = entry_data
+				end
+			end
 
         if #security_data > 0 then
             logPlayers(security_data)
